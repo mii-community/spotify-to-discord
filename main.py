@@ -7,7 +7,7 @@ from requests import get, post
 load_dotenv()
 
 CLIENT_ID = getenv("CLIENT_ID")
-CLIENT_SECRET = getenv("CLIENT_ID")
+CLIENT_SECRET = getenv("CLIENT_SECRET")
 PLAYLIST_ID = getenv("PLAYLIST_ID")
 
 
@@ -15,12 +15,12 @@ class SpotifyToDiscord:
     def get_playlist_items(self):
         header = {"Authorization": f"Bearer {self.token}"}
         query_param = {"fields": "items(added_by(href),track(name,artists(name))"}
-        response = get(
+        items = get(
             f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}/tracks",
             headers=header,
             params=query_param,
         )
-        return response
+        return items
 
     def get_user_name(self, href):
         header = {"Authorization": f"Bearer {self.token}"}
@@ -34,3 +34,14 @@ class SpotifyToDiscord:
         self.token = post(
             "https://accounts.spotify.com/api/token", headers=header, data=param
         ).json()["access_token"]
+
+    def start(self):
+        self.set_new_token()
+        self.now_items = self.get_playlist_items()
+
+    def combine_addition(self, items):
+        pass
+
+
+spotify_to_discord = SpotifyToDiscord()
+spotify_to_discord.start()
