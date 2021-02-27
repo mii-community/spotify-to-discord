@@ -15,17 +15,20 @@ class SpotifyToDiscord:
     def get_playlist_items(self):
         header = {"Authorization": f"Bearer {self.token}"}
         query_param = {"fields": "items(added_by(href),track(name,artists(name))"}
-        result = get(
+        response = get(
             f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}/tracks",
             headers=header,
             params=query_param,
         )
-        return result.json()
+        return response
 
-    def make_token(self):
-        encoded_code = b64encode(
-            f"{CLIENT_ID}:{CLIENT_SECRET}".encode()
-        ).decode()
+    def get_user_name(self, href):
+        header = {"Authorization": f"Bearer {self.token}"}
+        user_name = get(href, headers=header).json()["display_name"]
+        return user_name
+
+    def set_new_token(self):
+        encoded_code = b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
         header = {"Authorization": f"Basic {encoded_code}"}
         param = {"grant_type": "client_credentials"}
         self.token = post(
