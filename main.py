@@ -48,15 +48,16 @@ class SpotifyToDiscord:
 
     def start(self):
         self.set_new_token()
-        self.now_items = self.get_playlist_items()
+        self.now_items = self.get_playlist_items().json()["items"]
         while True:
-            items = self.get_playlist_items()
+            items = self.get_playlist_items().json()["items"]
             addition = self.extraction_addition(items)
             if addition:
                 print(addition)
+            self.now_items = items
             sleep(1)
 
-    def combine_addition(self, items):
+    def combine_addition(self, addition_items):
         pass
 
 
