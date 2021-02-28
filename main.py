@@ -10,10 +10,24 @@ load_dotenv()
 CLIENT_ID = getenv("CLIENT_ID")
 CLIENT_SECRET = getenv("CLIENT_SECRET")
 PLAYLIST_ID = getenv("PLAYLIST_ID")
+DISCORD_WEBHOOK_ID = getenv("DISCORD_WEBHOOK_ID")
 
 
 class SpotifyToDiscord:
-    def extraction_addition(self, items):
+    def combine_additions(self, additions):
+        for addition in additions:
+            song_name = addition["track"]["name"]
+            artist_names = [artist["name"] for artist in addition["artists"]].join(
+                " & "
+            )
+            user_name = self.get_user_name(addition["added_by"]["href"])
+            yield song_name, artist_names, user_name
+
+    @staticmethod
+    def error_handling(exception):
+        post(DISCORD_WEBHOOK_ID, json={"content": exception})
+
+    def extraction_additions(self, items):
         addition = []
         for item in items:
             if item not in self.now_items:
@@ -56,9 +70,6 @@ class SpotifyToDiscord:
                 print(addition)
             self.now_items = items
             sleep(1)
-
-    def combine_addition(self, addition_items):
-        pass
 
 
 spotify_to_discord = SpotifyToDiscord()
