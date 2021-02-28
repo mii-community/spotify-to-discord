@@ -16,13 +16,13 @@ DISCORD_WEBHOOK_URL = getenv("DISCORD_WEBHOOK_URL")
 class SpotifyToDiscord:
     def combine_additions(self, additions):
         for addition in additions:
-            song_name = addition["track"]["name"]
-            song_href = addition["track"]["external_urls"]["spotify"]
-            artist_name = " & ".join(
+            track_name = addition["track"]["name"]
+            track_spotify_url = addition["track"]["external_urls"]["spotify"]
+            track_artist_name = " & ".join(
                 [artist["name"] for artist in addition["track"]["artists"]]
             )
             added_user_name = self.get_user_name(addition["added_by"]["href"])
-            yield (song_name, artist_name, song_href, added_user_name)
+            yield (track_name, track_artist_name, track_spotify_url, added_user_name)
 
     @staticmethod
     def error_handling(exception):
