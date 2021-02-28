@@ -18,10 +18,10 @@ class SpotifyToDiscord:
         header = {"Authorization": f"Bearer {self.token}"}
         params = {
             "market": "JP",
-            "fields": "items(added_by(href),track(name,external_urls,artists(name),id))",
+            "fields": "tracks.items(added_by(href),track(name,external_urls,artists(name),id))",
         }
         items = get(
-            f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}/tracks",
+            f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}",
             headers=header,
             params=params,
         )
@@ -41,11 +41,11 @@ class SpotifyToDiscord:
         ).json()["access_token"]
 
     def extraction_additions(self, items):
-        addition = []
+        additions = []
         for item in items:
             if item not in self.now_items:
-                addition.append(item)
-        return addition
+                additions.append(item)
+        return additions
 
     def combine_additions(self, additions):
         for addition in additions:
@@ -57,19 +57,29 @@ class SpotifyToDiscord:
             added_user_name = self.get_user_name(addition["added_by"]["href"])
             yield (track_name, track_artist_name, track_spotify_url, added_user_name)
 
+    def extraction_deletions(self, items):
+        deletions = []
+        for now_item in self.now_items:
+            if now_item not in items:
+                deletions.append(now_item)
+        return deletions
+
     @staticmethod
     def error_handling(exception):
         post(DISCORD_WEBHOOK_URL, json={"content": f"内部エラーが発生しました:{exception}"})
 
     def start(self):
         self.set_new_token()
-        self.now_items = self.get_playlist_items().json()["items"]
+        self.now_items = self.get_playlist_items().json()["tracks"]["items"]
         while True:
-            items = self.get_playlist_items().json()["items"]
+            items = self.get_playlist_items().json()["tracks"]["items"]
             additions = self.extraction_additions(items)
             if additions:
                 for combined_addition in self.combine_additions(additions):
                     print(combined_addition)
+            deletions = self.extraction_deletions(items)
+            if deletions:
+                print(deletions)
             self.now_items = items
             sleep(1)
 
