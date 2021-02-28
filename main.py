@@ -17,11 +17,12 @@ class SpotifyToDiscord:
     def combine_additions(self, additions):
         for addition in additions:
             song_name = addition["track"]["name"]
-            artist_names = [artist["name"] for artist in addition["artists"]].join(
-                " & "
+            song_href = addition["track"]["external_urls"]["spotify"]
+            artist_name = " & ".join(
+                [artist["name"] for artist in addition["track"]["artists"]]
             )
-            user_name = self.get_user_name(addition["added_by"]["href"])
-            yield song_name, artist_names, user_name
+            added_user_name = self.get_user_name(addition["added_by"]["href"])
+            yield (song_name, artist_name, song_href, added_user_name)
 
     @staticmethod
     def error_handling(exception):
@@ -38,7 +39,7 @@ class SpotifyToDiscord:
         header = {"Authorization": f"Bearer {self.token}"}
         params = {
             "market": "JP",
-            "fields": "items(added_by(href),track(name,artists(name),id))",
+            "fields": "items(added_by(href),track(name,external_urls,artists(name),id))",
         }
         items = get(
             f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}/tracks",
@@ -61,14 +62,14 @@ class SpotifyToDiscord:
         ).json()["access_token"]
 
     def start(self):
-        self.error_handling("test")
         self.set_new_token()
         self.now_items = self.get_playlist_items().json()["items"]
         while True:
             items = self.get_playlist_items().json()["items"]
-            addition = self.extraction_addition(items)
-            if addition:
-                print(addition)
+            additions = self.extraction_additions(items)
+            if additions:
+                for combined_addition in self.combine_additions(additions):
+                    print(combined_addition)
             self.now_items = items
             sleep(1)
 
