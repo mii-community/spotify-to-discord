@@ -14,27 +14,6 @@ DISCORD_WEBHOOK_URL = getenv("DISCORD_WEBHOOK_URL")
 
 
 class SpotifyToDiscord:
-    def combine_additions(self, additions):
-        for addition in additions:
-            track_name = addition["track"]["name"]
-            track_spotify_url = addition["track"]["external_urls"]["spotify"]
-            track_artist_name = " & ".join(
-                [artist["name"] for artist in addition["track"]["artists"]]
-            )
-            added_user_name = self.get_user_name(addition["added_by"]["href"])
-            yield (track_name, track_artist_name, track_spotify_url, added_user_name)
-
-    @staticmethod
-    def error_handling(exception):
-        post(DISCORD_WEBHOOK_URL, json={"content": exception})
-
-    def extraction_additions(self, items):
-        addition = []
-        for item in items:
-            if item not in self.now_items:
-                addition.append(item)
-        return addition
-
     def get_playlist_items(self):
         header = {"Authorization": f"Bearer {self.token}"}
         params = {
@@ -60,6 +39,27 @@ class SpotifyToDiscord:
         self.token = post(
             "https://accounts.spotify.com/api/token", headers=header, data=param
         ).json()["access_token"]
+
+    def extraction_additions(self, items):
+        addition = []
+        for item in items:
+            if item not in self.now_items:
+                addition.append(item)
+        return addition
+
+    def combine_additions(self, additions):
+        for addition in additions:
+            track_name = addition["track"]["name"]
+            track_spotify_url = addition["track"]["external_urls"]["spotify"]
+            track_artist_name = " & ".join(
+                [artist["name"] for artist in addition["track"]["artists"]]
+            )
+            added_user_name = self.get_user_name(addition["added_by"]["href"])
+            yield (track_name, track_artist_name, track_spotify_url, added_user_name)
+
+    @staticmethod
+    def error_handling(exception):
+        post(DISCORD_WEBHOOK_URL, json={"content": f"内部エラーが発生しました:{exception}"})
 
     def start(self):
         self.set_new_token()
