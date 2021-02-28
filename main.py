@@ -10,7 +10,7 @@ load_dotenv()
 CLIENT_ID = getenv("CLIENT_ID")
 CLIENT_SECRET = getenv("CLIENT_SECRET")
 PLAYLIST_ID = getenv("PLAYLIST_ID")
-DISCORD_WEBHOOK_ID = getenv("DISCORD_WEBHOOK_ID")
+DISCORD_WEBHOOK_URL = getenv("DISCORD_WEBHOOK_URL")
 
 
 class SpotifyToDiscord:
@@ -25,7 +25,7 @@ class SpotifyToDiscord:
 
     @staticmethod
     def error_handling(exception):
-        post(DISCORD_WEBHOOK_ID, json={"content": exception})
+        post(DISCORD_WEBHOOK_URL, json={"content": exception})
 
     def extraction_additions(self, items):
         addition = []
@@ -61,6 +61,7 @@ class SpotifyToDiscord:
         ).json()["access_token"]
 
     def start(self):
+        self.error_handling("test")
         self.set_new_token()
         self.now_items = self.get_playlist_items().json()["items"]
         while True:
