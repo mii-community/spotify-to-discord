@@ -6,6 +6,9 @@ from time import sleep
 from dotenv import load_dotenv
 from requests import get, post
 
+from lib.addition_or_deletion import AddtionOrDeletion
+from lib.playlist import Playlist
+
 load_dotenv()
 
 CLIENT_ID = getenv("CLIENT_ID")
@@ -19,7 +22,7 @@ class SpotifyToDiscord:
         header = {"Authorization": f"Bearer {self.token}"}
         params = {
             "market": "JP",
-            "fields": "tracks.items(added_by(href),track(name,external_urls,artists(name),id))",
+            "fields": "name,external_urls,followers,images,tracks.items(added_at,added_by(href),track(name,external_urls,album(images),artists(name)))",
         }
         playlist = get(
             f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}",
@@ -38,10 +41,7 @@ class SpotifyToDiscord:
         ).json()["access_token"]
 
     def extraction_additions(self, items):
-        additions = []
-        for item in items:
-            if item not in self.now_items:
-                additions.append(item)
+        additions = list(filter(lambda x: x not in self.now_items, items))
         return additions
 
     def extraction_deletions(self, items):
@@ -51,11 +51,24 @@ class SpotifyToDiscord:
                 deletions.append(now_item)
         return deletions
 
+    def addition_send_to_discord(self, playlist, addition):
+        embed = {
+            "title": "Added new song!",
+            "description": f"__{addition.track_name}__ - {addition.artist_name}",
+            "url": addition.track_url,
+            "timestamp": addition.added_at,
+            "author": {"name": addition.author_name, "url": addition.author_url, "icon_url": addition.author_image},
+            "footer": {"text": f"{playlist.name}(Followers: {playlist.total_followers})", "icon_url": playlist.image},
+            "thumbnail": {"url": addition.album_image}
+        }
+        print(addition.album_image)
+        post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]})
+
     @staticmethod
-    def error_handling(exception):
+    def error_handling(exception_text):
         post(
             DISCORD_WEBHOOK_URL, json={
-                "content": f"内部エラーが発生しました。\n```{exception}```\nシステムを終了します。"}
+                "content": f"内部エラーが発生しました。\n```{exception_text}```\nシステムを終了します。"}
         )
         exit()
 
@@ -63,18 +76,19 @@ class SpotifyToDiscord:
         self.set_new_token()
         self.now_items = self.get_playlist().json()["tracks"]["items"]
         while True:
-            playlist = self.get_playlist().json()
-            items = playlist["items"]["tracks"]["items"]
-            additions = self.extraction_additions(items)
+            playlist = Playlist(self.get_playlist().json())
+            print(playlist.items)
+            additions = self.extraction_additions(playlist.items)
             if additions:
-                for combined_addition in self.combine_additions_or_deletions(additions):
-                    print(combined_addition)
-            deletions = self.extraction_deletions(items)
+                for addition in additions:
+                    self.addition_send_to_discord(
+                        playlist, AddtionOrDeletion(self.token, addition))
+            deletions = self.extraction_deletions(playlist.items)
             if deletions:
                 for combined_deletion in self.combine_additions_or_deletions(deletions):
                     print(combined_deletion)
-            self.now_items = items
-            sleep(1)
+            self.now_items = playlist.items
+            sleep(5)
 
 
 spotify_to_discord = SpotifyToDiscord()
