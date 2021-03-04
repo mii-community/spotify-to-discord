@@ -6,8 +6,7 @@ from time import sleep
 from dotenv import load_dotenv
 from requests import get, post
 
-from lib.addition_or_deletion import AddtionOrDeletion
-from lib.playlist import Playlist
+from lib.addition_or_deletion import Addition
 
 load_dotenv()
 
@@ -18,38 +17,30 @@ DISCORD_WEBHOOK_URL = getenv("DISCORD_WEBHOOK_URL")
 
 
 class SpotifyToDiscord:
-    def get_playlist(self):
+    def get_playlist_tracks(self):
         header = {"Authorization": f"Bearer {self.token}"}
         params = {
-            "market": "JP",
-            "fields": "name,external_urls,followers,images,tracks.items(added_at,added_by(href),track(name,external_urls,album(images),artists(name)))",
+            "fields": "items(added_at,added_by(href),track(id))",
         }
-        playlist = get(
-            f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}",
+        tracks = get(
+            f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}/tracks",
             headers=header,
             params=params,
-        )
-        return playlist
+        ).json()["items"]
+        return tracks
 
-    def set_new_token(self):
-        encoded_code = b64encode(
-            f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
-        header = {"Authorization": f"Basic {encoded_code}"}
-        param = {"grant_type": "client_credentials"}
-        self.token = post(
-            "https://accounts.spotify.com/api/token", headers=header, data=param
-        ).json()["access_token"]
+    def make_only_ids(self, tracks):
+        ids = [track["track"]["id"] for track in tracks]
+        return set(ids)
 
-    def extraction_additions(self, items):
-        additions = list(filter(lambda x: x not in self.now_items, items))
+    def search_track_from_playlist(self, tracks, id):
+        for track in tracks:
+            if track["track"]["id"] == id:
+                return track
+
+    def extraction_additions(self, ids):
+        additions = ids - self.now_ids
         return additions
-
-    def extraction_deletions(self, items):
-        deletions = []
-        for now_item in self.now_items:
-            if now_item not in items:
-                deletions.append(now_item)
-        return deletions
 
     def addition_send_to_discord(self, playlist, addition):
         embed = {
@@ -61,7 +52,6 @@ class SpotifyToDiscord:
             "footer": {"text": f"{playlist.name}(Followers: {playlist.total_followers})", "icon_url": playlist.image},
             "thumbnail": {"url": addition.album_image}
         }
-        print(addition.album_image)
         post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]})
 
     @staticmethod
@@ -72,22 +62,30 @@ class SpotifyToDiscord:
         )
         exit()
 
+    def set_new_token(self):
+        encoded_code = b64encode(
+            f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
+        header = {"Authorization": f"Basic {encoded_code}"}
+        param = {"grant_type": "client_credentials"}
+        self.token = post(
+            "https://accounts.spotify.com/api/token", headers=header, data=param
+        ).json()["access_token"]
+
     def start(self):
         self.set_new_token()
-        self.now_items = self.get_playlist().json()["tracks"]["items"]
+        self.now_ids = self.make_only_ids(self.get_playlist_tracks())
         while True:
-            playlist = Playlist(self.get_playlist().json())
-            print(playlist.items)
-            additions = self.extraction_additions(playlist.items)
-            if additions:
-                for addition in additions:
+            tracks = self.get_playlist_tracks()
+            ids = self.make_only_ids(tracks)
+            addition_ids = self.extraction_additions(ids)
+            if addition_ids:
+                for addition_id in addition_ids:
+                    addition_track = self.search_track_from_playlist(
+                        tracks, addition_id)
                     self.addition_send_to_discord(
-                        playlist, AddtionOrDeletion(self.token, addition))
-            deletions = self.extraction_deletions(playlist.items)
-            if deletions:
-                for combined_deletion in self.combine_additions_or_deletions(deletions):
-                    print(combined_deletion)
-            self.now_items = playlist.items
+                        self.get_playlist_details(),
+                        Addition(self.token, addition_track))
+            self.now_ids = ids
             sleep(5)
 
 
