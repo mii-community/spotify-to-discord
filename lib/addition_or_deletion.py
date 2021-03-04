@@ -28,10 +28,10 @@ class Addition:
                 for artist in track_detail["artists"]
             ]
         )
-        playlist = get_playlist_details(token)
-        self.playlist_name = playlist["name"]
-        self.playlist_image = playlist["images"][0]["url"]
-        self.playlist_url = playlist["external_urls"]["spotify"]
+        playlist_detail = get_playlist_details(token)
+        self.playlist_name = playlist_detail["name"]
+        self.playlist_image = playlist_detail["images"][0]["url"]
+        self.playlist_url = playlist_detail["external_urls"]["spotify"]
 
 
 def get_playlist_details(token):

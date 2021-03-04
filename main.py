@@ -42,14 +42,14 @@ class SpotifyToDiscord:
         additions = ids - self.now_ids
         return additions
 
-    def addition_send_to_discord(self, playlist, addition):
+    def addition_send_to_discord(self, addition):
         embed = {
             "title": "Added new song!",
             "description": f"__{addition.track_name}__ - {addition.artist_name}",
             "url": addition.track_url,
             "timestamp": addition.added_at,
             "author": {"name": addition.author_name, "url": addition.author_url, "icon_url": addition.author_image},
-            "footer": {"text": f"{playlist.name}(Followers: {playlist.total_followers})", "icon_url": playlist.image},
+            "footer": {"text": f"{addition.playlist_name}", "icon_url": addition.playlist_image},
             "thumbnail": {"url": addition.album_image}
         }
         post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]})
@@ -83,7 +83,6 @@ class SpotifyToDiscord:
                     addition_track = self.search_track_from_playlist(
                         tracks, addition_id)
                     self.addition_send_to_discord(
-                        self.get_playlist_details(),
                         Addition(self.token, addition_track))
             self.now_ids = ids
             sleep(5)
