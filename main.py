@@ -40,11 +40,13 @@ class SpotifyToDiscord:
             if (next_url := response.json()["next"]) is None:
                 return all_tracks
 
-    def make_only_ids(self, tracks):
+    @staticmethod
+    def make_only_ids(tracks):
         ids = [track["track"]["id"] for track in tracks]
         return set(ids)
 
-    def search_track_from_playlist(self, tracks, id):
+    @staticmethod
+    def search_track_from_playlist(tracks, id):
         for track in tracks:
             if track["track"]["id"] == id:
                 return track
