@@ -20,20 +20,25 @@ DISCORD_WEBHOOK_URL = getenv("DISCORD_WEBHOOK_URL")
 class SpotifyToDiscord:
     def get_playlist_tracks(self):
         header = {"Authorization": f"Bearer {self.token}"}
+        next_url = f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}/tracks"
         params = {
-            "fields": "items(added_at,added_by(href),track(id))",
+            "fields": "next,items(added_at,added_by(href),track(id))",
+            "market": "JP"
         }
-        try:
-            response = get(
-                f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}/tracks",
-                headers=header,
-                params=params,
-            )
-            response.raise_for_status()
-        except RequestException as e:
-            self.error_handling(e)
-        tracks = response.json()["items"]
-        return tracks
+        all_tracks = []
+        while True:
+            try:
+                response = get(
+                    next_url,
+                    headers=header,
+                    params=params
+                )
+                response.raise_for_status()
+                all_tracks.extend(response.json()["items"])
+            except RequestException as e:
+                self.error_handling(e)
+            if (next_url := response.json()["next"]) is None:
+                return all_tracks
 
     def make_only_ids(self, tracks):
         ids = [track["track"]["id"] for track in tracks]
