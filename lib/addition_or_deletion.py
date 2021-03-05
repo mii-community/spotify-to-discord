@@ -45,7 +45,7 @@ class Deletion:
             "spotify"
         ]
         self.album_image = track_detail["album"]["images"][0]["url"]
-        self.artist_name = "&".join(
+        self.artist_name = ", ".join(
             [
                 artist["name"]
                 for artist in track_detail["artists"]
