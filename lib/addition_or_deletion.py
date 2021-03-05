@@ -11,7 +11,6 @@ PLAYLIST_ID = getenv("PLAYLIST_ID")
 class Addition:
     def __init__(self, token, playlist_track):
         self.added_at = playlist_track["added_at"]
-        print(self.added_at)
         author = get(
             playlist_track["added_by"]["href"],
             headers={"Authorization": f"Bearer {token}"}).json()
