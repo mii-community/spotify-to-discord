@@ -6,7 +6,7 @@ from time import sleep
 from dotenv import load_dotenv
 from requests import get, post
 
-from lib.addition_or_deletion import Addition
+from lib.addition_or_deletion import Addition, Deletion
 
 load_dotenv()
 
@@ -42,6 +42,10 @@ class SpotifyToDiscord:
         additions = ids - self.now_ids
         return additions
 
+    def extraction_deletions(self, ids):
+        deletions = self.now_ids - ids
+        return deletions
+
     def addition_send_to_discord(self, addition):
         embed = {
             "title": "Added new song!",
@@ -53,6 +57,19 @@ class SpotifyToDiscord:
             "thumbnail": {"url": addition.album_image}
         }
         post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]})
+        return
+
+    def deletion_send_to_discord(self, deletion):
+        embed = {
+            "title": "Removed the song",
+            "description": f"__{deletion.track_name}__ - {deletion.artist_name}",
+            "url": deletion.track_url,
+            "timestamp": deletion.deleted_at,
+            "footer": {"text": f"{deletion.playlist_name}", "icon_url": deletion.playlist_image},
+            "thumbnail": {"url": deletion.album_image}
+        }
+        post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]})
+        return
 
     @staticmethod
     def error_handling(exception_text):
@@ -73,7 +90,8 @@ class SpotifyToDiscord:
 
     def start(self):
         self.set_new_token()
-        self.now_ids = self.make_only_ids(self.get_playlist_tracks())
+        self.now_tracks = self.get_playlist_tracks()
+        self.now_ids = self.make_only_ids(self.now_tracks)
         while True:
             tracks = self.get_playlist_tracks()
             ids = self.make_only_ids(tracks)
@@ -84,6 +102,14 @@ class SpotifyToDiscord:
                         tracks, addition_id)
                     self.addition_send_to_discord(
                         Addition(self.token, addition_track))
+            deletion_ids = self.extraction_deletions(ids)
+            if deletion_ids:
+                for deletion_id in deletion_ids:
+                    deletion_track = self.search_track_from_playlist(
+                        self.now_tracks, deletion_id)
+                    self.deletion_send_to_discord(
+                        Deletion(self.token, deletion_track))
+            self.now_tracks = tracks
             self.now_ids = ids
             sleep(5)
 
