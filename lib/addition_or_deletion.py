@@ -60,9 +60,9 @@ def get_playlist_details(token):
     header = {"Authorization": f"Bearer {token}"}
     parmas = {
         "fields": "name,images,external_urls"}
-    playlist = get(
+    playlist_detail = get(
         f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}", headers=header, params=parmas).json()
-    return playlist
+    return playlist_detail
 
 
 def get_track_details(token, track_id):
