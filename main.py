@@ -5,6 +5,7 @@ from time import sleep
 
 from dotenv import load_dotenv
 from requests import get, post
+from requests.exceptions import RequestException
 
 from lib.addition_or_deletion import Addition, Deletion
 
@@ -22,11 +23,16 @@ class SpotifyToDiscord:
         params = {
             "fields": "items(added_at,added_by(href),track(id))",
         }
-        tracks = get(
-            f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}/tracks",
-            headers=header,
-            params=params,
-        ).json()["items"]
+        try:
+            response = get(
+                f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}/tracks",
+                headers=header,
+                params=params,
+            )
+            response.raise_for_status()
+        except RequestException as e:
+            self.error_handling(e)
+        tracks = response.json()["items"]
         return tracks
 
     def make_only_ids(self, tracks):
@@ -56,7 +62,11 @@ class SpotifyToDiscord:
             "footer": {"text": f"{addition.playlist_name}", "icon_url": addition.playlist_image},
             "thumbnail": {"url": addition.album_image}
         }
-        post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]})
+        try:
+            response = post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]})
+            response.raise_for_status()
+        except RequestException as e:
+            self.error_handling(e)
         return
 
     def deletion_send_to_discord(self, deletion):
@@ -68,7 +78,11 @@ class SpotifyToDiscord:
             "footer": {"text": f"{deletion.playlist_name}", "icon_url": deletion.playlist_image},
             "thumbnail": {"url": deletion.album_image}
         }
-        post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]})
+        try:
+            response = post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]})
+            response.raise_for_status()
+        except RequestException as e:
+            self.error_handling(e)
         return
 
     @staticmethod
@@ -84,9 +98,14 @@ class SpotifyToDiscord:
             f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
         header = {"Authorization": f"Basic {encoded_code}"}
         param = {"grant_type": "client_credentials"}
-        self.token = post(
-            "https://accounts.spotify.com/api/token", headers=header, data=param
-        ).json()["access_token"]
+        try:
+            response = post(
+                "https://accounts.spotify.com/api/token", headers=header, data=param
+            )
+            response.raise_for_status()
+        except RequestException as e:
+            self.error_handling(e)
+        self.token = response.json()["access_token"]
 
     def start(self):
         self.set_new_token()
