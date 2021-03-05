@@ -60,7 +60,8 @@ class SpotifyToDiscord:
     def addition_send_to_discord(self, addition):
         embed = {
             "title": "Added new song!",
-            "description": f"__{addition.track_name}__ - {addition.artist_name}",
+            "description": (f"__{addition.track_name}__ - {addition.artist_name}\n"
+                            f"[Jump to playlist]({addition.playlist_url})"),
             "url": addition.track_url,
             "timestamp": addition.added_at,
             "author": {"name": addition.author_name, "url": addition.author_url, "icon_url": addition.author_image},
@@ -77,7 +78,8 @@ class SpotifyToDiscord:
     def deletion_send_to_discord(self, deletion):
         embed = {
             "title": "Removed the song",
-            "description": f"__{deletion.track_name}__ - {deletion.artist_name}",
+            "description": (f"__{deletion.track_name}__ - {deletion.artist_name}\n"
+                            f"[Jump to playlist]({deletion.playlist_url})"),
             "url": deletion.track_url,
             "timestamp": deletion.deleted_at,
             "footer": {"text": f"{deletion.playlist_name}", "icon_url": deletion.playlist_image},
