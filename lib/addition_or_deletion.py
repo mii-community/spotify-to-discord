@@ -29,10 +29,6 @@ class Addition:
                 for artist in track_detail["artists"]
             ]
         )
-        playlist_detail = get_playlist_details(token)
-        self.playlist_name = playlist_detail["name"]
-        self.playlist_image = playlist_detail["images"][0]["url"]
-        self.playlist_url = playlist_detail["external_urls"]["spotify"]
 
 
 class Deletion:
@@ -50,19 +46,6 @@ class Deletion:
                 for artist in track_detail["artists"]
             ]
         )
-        playlist_detail = get_playlist_details(token)
-        self.playlist_name = playlist_detail["name"]
-        self.playlist_image = playlist_detail["images"][0]["url"]
-        self.playlist_url = playlist_detail["external_urls"]["spotify"]
-
-
-def get_playlist_details(token):
-    header = {"Authorization": f"Bearer {token}"}
-    parmas = {
-        "fields": "name,images,external_urls"}
-    playlist_detail = get(
-        f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}", headers=header, params=parmas).json()
-    return playlist_detail
 
 
 def get_track_details(token, track_id):

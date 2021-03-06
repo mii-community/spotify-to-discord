@@ -9,6 +9,7 @@ from requests import get, post
 from requests.exceptions import RequestException
 
 from lib.addition_or_deletion import Addition, Deletion
+from lib.playlist import Playlist
 
 load_dotenv()
 
@@ -41,6 +42,14 @@ class SpotifyToDiscord:
             if (next_url := response.json()["next"]) is None:
                 return all_tracks
 
+    def get_playlist_details(self):
+        header = {"Authorization": f"Bearer {self.token}"}
+        parmas = {
+            "fields": "name,images,external_urls"}
+        playlist_detail = get(
+            f"https://api.spotify.com/v1/playlists/{PLAYLIST_ID}", headers=header, params=parmas).json()
+        return playlist_detail
+
     @staticmethod
     def make_only_ids(tracks):
         ids = [track["track"]["id"] for track in tracks]
@@ -64,11 +73,11 @@ class SpotifyToDiscord:
         embed = {
             "title": "Added new song!",
             "description": (f"__{addition.track_name}__ - {addition.artist_name}\n"
-                            f"[Jump to playlist]({addition.playlist_url})"),
+                            f"[Jump to playlist]({self.playlist.url})"),
             "url": addition.track_url,
             "timestamp": addition.added_at,
             "author": {"name": addition.author_name, "url": addition.author_url, "icon_url": addition.author_image},
-            "footer": {"text": f"{addition.playlist_name}", "icon_url": addition.playlist_image},
+            "footer": {"text": f"{self.playlist.name}", "icon_url": self.playlist.image},
             "thumbnail": {"url": addition.album_image}
         }
         try:
@@ -82,10 +91,10 @@ class SpotifyToDiscord:
         embed = {
             "title": "Removed the song",
             "description": (f"__{deletion.track_name}__ - {deletion.artist_name}\n"
-                            f"[Jump to playlist]({deletion.playlist_url})"),
+                            f"[Jump to playlist]({self.playlist.url})"),
             "url": deletion.track_url,
             "timestamp": deletion.deleted_at,
-            "footer": {"text": f"{deletion.playlist_name}", "icon_url": deletion.playlist_image},
+            "footer": {"text": f"{self.playlist.name}", "icon_url": self.playlist.image},
             "thumbnail": {"url": deletion.album_image}
         }
         try:
@@ -123,6 +132,7 @@ class SpotifyToDiscord:
         token_setter = Thread(target=self.set_new_token, daemon=True)
         token_setter.start()
         sleep(1)
+        self.playlist = Playlist(self.get_playlist_details())
         self.now_tracks = self.get_playlist_tracks()
         self.now_ids = self.make_only_ids(self.now_tracks)
         while True:
