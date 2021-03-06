@@ -1,6 +1,7 @@
 from base64 import b64encode
 from os import getenv
 from sys import exit
+from threading import Thread
 from time import sleep
 
 from dotenv import load_dotenv
@@ -107,17 +108,21 @@ class SpotifyToDiscord:
             f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
         header = {"Authorization": f"Basic {encoded_code}"}
         param = {"grant_type": "client_credentials"}
-        try:
-            response = post(
-                "https://accounts.spotify.com/api/token", headers=header, data=param
-            )
-            response.raise_for_status()
-        except RequestException as e:
-            self.error_handling(e)
-        self.token = response.json()["access_token"]
+        while True:
+            try:
+                response = post(
+                    "https://accounts.spotify.com/api/token", headers=header, data=param
+                )
+                response.raise_for_status()
+            except RequestException as e:
+                self.error_handling(e)
+            self.token = response.json()["access_token"]
+            sleep(1800)
 
     def start(self):
-        self.set_new_token()
+        token_setter = Thread(target=self.set_new_token, daemon=True)
+        token_setter.start()
+        sleep(1)
         self.now_tracks = self.get_playlist_tracks()
         self.now_ids = self.make_only_ids(self.now_tracks)
         while True:
